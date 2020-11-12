@@ -1,0 +1,155 @@
+				AWS
+rehost ias ec2
+refactor/repurchase saas beanstack,
+replatform paas RDS
+Why do we need NACL besides SG
+
+Server migration Service (SMS)
+Server Migration Connector (SMC)
+
+:::::::::::::::::::::::::: VPC ::::::::::::::::::::::::::
+
+1) One VPC per region.
+2) One subnet per AZ.
+3) Each subnet must be attached to one route table. VPC cidr blck range cannot be changed once it is created.
+4) can I attached multiple route tables to same subnet ? NO
+5) Can I attache multiple subnets to same route table ? YES
+6) There is always default rule in each table and you cannot edit/delete it. (10.0.0.0/16 local ex)
+7) I can have max 5 security groups per EC2
+8) Security groups are at EC2 (ENI) level and stateful & bi-directional (if incoming then outgoing also allowed and if outgoing then inbound also allowed) and NACL are at subnet level and stateless.
+9) Difference between Security groups, NACL and route table.
+10) You cannot delete default security group.
+11) Outbound traffic is always allowed on Security group.
+12) Security group are implicit deny at the end after reading all allowed rules defination.
+13) Security group rules can have either CIDR block or name of SG
+14) SG belonging to diff subnets and AZ can communicate in VPC if allowed (SG is a VPC resource)
+15) NACL is inspected from lower number towards higher.
+16) SG is at ENI/EC2 level whereas NACL is at subnet level.
+17) All the subnets within VPC can talk to each other, no need to add any route in route table.
+18) Traffic coming is inbound, traffic out of the subnet/SG is outbound. In to the ENI is inbound , traffic out of the ENI is outbound.
+19) Rules are configured for Inbound by changing source and rules are configured for Outbound traffic by changing destination.
+20) You can have upto 5 NAT gateways per AZ.Connections initiated from internet are not allowed, connections should be from internalVPC to internet.
+21) VPN goes over internet, are easy to deploy, cost effective and fast.
+22) Virtual private can connect to max 10 ipsec tunnels (soft limits).
+23) VPC endpoints helps to connect AWS instances to service (like S3, Dynamo, kinesis, cloudwatch) internally without going to network and then accessing it.
+24) there are two type of VPC endpoints Interface and Gateway Endpoints.
+25) Gateway endpoint only support S3 and Dynamo DB.
+26) Endpoints are supported in same region only.
+27) you can use your own DNS for aws vpc as well but you cannot use AWS route53 as substitute for your dns server.
+28) why default security group has inbound rule sourced with self allowed ?
+29) By default NACL allows all inbound and outbound on a subnet when subnet is created.
+30) Public VIF in Direct Connection will connect to Public subnet and Private VIF will connect to private subnet.
+31) Direct connect is per region base.
+32) One can have 10 VPN connections per VGW in VPC.
+33) VPC can be between /16 and /28 CIDR.
+34) Default SG will allow ibound rule for all ports and source as own subnet CIDR with all allow outbound, whereas Custom SG will denny everything in inbound and allow everything in outbound.
+35) Default NACL will allow everything in outbound & inbound, whereas custom will deny everyhing outbound & inbound.
+36) Minimum subnet you can have is of /28 in VPC.
+
+VPC Peering:
+1) It should not be overlapping CIDR blocks for VPC peering, otherwise it will fail.
+2) peering is one to one direct connection. Transitive peering is not supported.
+3) Peering is edge to edge routing only.
+4) Peering can be done across multiple regions.
+
+::::::::::::::::::::::::::EC2::::::::::::::::::::::::::
+1) There are 20 soft limits for EC2 instance per account.
+2) two types of instance storage/root drive.. EBS backed(NAS) and Instance-stored backed(Local, Ephermal,10GB max, lost after termination)
+3) 5 types of EBS Provisioned IOPS SSD,	General Purpose SSD, Throughput Optimized HDD, Cold HDD, Magnetic HDD
+4) Instance stored backed EC2 cannot be stopped, only terminated and rebooted.
+5) Instance stored is internal ephermal virtual storage space/local on EC2, once teh EC2 is stopped data is lost and that is why it is not allowed to stop in AWS console.
+6) Enhanced networking uses SR-I/OV(single route IO Virtualization). It is supported on both instance stored and EBS backed EC2.
+6) For Enhanced networking, Instances must be launched from a HVM(hardware virtual machine) AMI and inside a VPC.
+7) ENA (Enhanced networking), bypasses hypervisor and network interfaces appear virtually on hardware instead of hypervisor. Each physial NIC virtualises itself as multiple independent NICs, each of which an be assigned to EC2.  This feature cannot be enabled while EC2 is in running state.
+7) Cluster placement group and spread placement group. spread PG can span muliple AZ.
+8) Cluster plaement group cannot span multiple AZ.
+9) You cannot merge two placement groups. You can move one an instance in/out of placement group or to another placement group.Instance should be stopped.
+10) when you stop an EC2 instance it retains Ip4/6 private IP and elastic address, and releases public IP address to AWS pool. you will be charged for unused elastic IP address.
+11) Preference is to reboot the EC2 instance from AWS console or CLi rather than OS reboot. Why ? cloudtrail and wait for 4 mins to do hard reboot.
+12) Terminiation enabled EC2 instances can be shutdown by CloudWatch by OS shutdown and treating OS shutdown as termination in AWS.
+13) Metadata of an instance can be viewed by running GET/CURL http://169.254.169.254/latest/meta-data/
+14) Instance user data is used for running script while launching and can be modified when instance is stopped. ITs limit is 16 kb.
+15) VM Import/Export is supported through CLI & API and not through AWS console. It is used to migrate(import) VMs from VMWare,Hyper-V and Citrix to EC2 and vice-versa.
+16) VM connector (vmware Vcenter plugin) can be used specifically for vmware to AWS migration.
+17) Bastion hosts are jump hosts in linux or RDP hosts in windows, it is recommended to launch it in auto scalng group.
+18) There are three types of EC2 pricing model: On-Demand, Reserved Instances (1 or 3 year) (availibility guranteed) and SPOT instances (bidding price matches to AWS)
+19) ENI added when instance is running (Hot attach), ENI added when instance is stopped (Warm attach), ENI added when launching an instance (Cold Attach).
+20) Public IP address will not be assigned to an instance if you are adding more than one ENI during EC2 launch.
+21) You can have upto 5 Security groups for an ENI. (?)
+22) I can attach secondary ENI from a different subnet too, however it should be part of same region and VPC.
+23) Bastion hosts (jump box) is used for connecting from outside world/internet to AWS, whereas NAT instance is used for connecting from AWS to internet. So it is NOT recommended to use an instance for both NAT and jump box.
+24) It is possible to have two ENI instance attached from different subnets, however in same Availaibility zone and region.
+25) Secondary ENi will persist if you terminate and created while launching (?)
+26) placement group should be in same AZ.
+27) Ec2 instances cannot be moved to a different region.
+28) RIs EC2 when in scope of AZ have guaranteed availibility.
+::::::::::::::::::::::::::CloudWatch::::::::::::::::::::::::::
+1) Cloudwatch is monitoring.
+2) By default EC2 service sends metric/monitoring info every 5 mins, this is basic info and non-chargeable.
+3) If it is chargeable and detailed it will send it every 1 min.
+4) Ec2 service checks the status of EC2 instance every 1 min, by default and non-chargeable.
+::::::::::::::::::::::::::EBS::::::::::::::::::::::::::
+1) You can attach only one EBS volume to one instance.
+2) EBS can be attached to EC2 if it is in same AZ.
+3) By default the EBS volumes will be deleted when EC2 instance is terminated, however you can change this behavious by "delete on termination" set to false.
+4) By default we have 5000 EBS per account and 10,000 Sanpshots per account limit.
+5) EBS snapshot are stored on S3, you cannot acces them directly, but via EC2 APIs
+6) EBS volumes are AZ specific, while snapshots are region specific.
+7) You can restore an EBS snapshot to new instance with same or larger volume size than the original volume size from where snapshot was taken.
+8) Snapshot for root volume can only be taken when instance is stopped, for non-root it an be taken when instance is running, however to make it consistent I/O should be stopped while taking snapshot only.
+9) You are charged for data transfer when EBS is copying data to S3. snapshots are asynchronusly created. one can have incremental backup for snapshot.
+10) you can copy the snapshot to another region. snapshot can be used to create volume of same or larger size. snapshot can be used to create AMI as well.
+11) you can change the encryption of snapshot while copying to another region.
+12) EBS volume and instance cannot be in different AZ.
+13) EBS encryption supports all volume types and instance families/types.
+14) Snapshot of encrypted volumes are also encrypted and vice versa.
+15) EBS encryption at rest can be done by encrypted volumes, third party tools to encrypt, OS level encryption, Encrypted file system, application level encryption.
+16) To do root encryption, create AMI out of it, copy it into new and while copying change it to encrypted type.
+17) CMK (Customer master key) is default and cannot be changed. To change the volume encrypted with CMK , create a snapshot and while copying change the key by re-encrypting with new key. CMKs are managed by KMS (Key Managed Service).
+18) To migrate the EBS volume to another AZ, you need to create snapshot and while creating volume from it specify new AZ.
+19) To migrate the EBS volume to another region, create the snapshot, copy it into new snapshot (and while creating select new region) & then create volume from it.
+20) You can have upto 5 snapshots request running at a time per account.
+21) If you are copying encrypted snapshot without permissions to key, then it will fail without giving any error message.
+22) AMI image in instance backed instance, can be created from EC2 instance. When created they go into your S3 bucket and then you need to register it before you can use it as new AMI.
+23) AMi imgae for EBS backed, can be created when Instance is stopped. When create they go rinto your S3 bucket and no need to register it is done automatically.
+
+::::::::::::::::::::::::::ELB::::::::::::::::::::::::::
+1) ELB serves HTTP/s, TCP and SSL traffic.
+2) Listener is the socket that check for connection requests.
+3) ELB service can span multiple AZ in a region and ELB works on IPv4 addresses only.
+4) To ensure that ELB service can scale ELB Nodes you should have minimum of /27 subnet and 8 available IP address in each subnet in each AZ.
+5) When an unhealth instance is there ELB stops sending traffic to it and declare it as "out-of-service".
+6) Default response time for ELB health check is 5 seconds (HTTP ping on port 80) and default health check interval is 30 sec.
+7) Unhealthy threshold is 2 for ELB health check. Healthy threshold is 10 for ELB health check.
+8) Cross Zone load balancing is meant to send traffic equally to all instances irrespective to which AZ they belong. By default it is disabled, which mean that ELB will load balance on AZ base even if AZ have unequal share of EC2.
+9) To define ELB in an AZ, you can select one subnet in that AZ.
+10) Encrypted form of HTTP traffic is HTPPS, encrypted form of TCP traffic is SSL or TLS (newer version of SSL).
+11) Benefit of having ELB is that it can decrypt the SSL and HTTPS handshake which is CPu intensive and ELB take care of that rather than dpending upon EC2 instances. This is called SSl termination or Offloading. However it is not useful if the requirement is to have end to end encryption.
+12) Enablinbg proxy in ELB means that EC2 instances will get to know from which actual client the traffic is coming to, rather than source as ELB.For layer4
+13) For HTTP X-Forwarder-For Header for requests from ELB to EC2 instances can be used for layer7 proxy enabling.
+14) Session stickiness/session affinity in LB is to bind the request from client for a session  to a particular client.
+15) If the cookie expires/removed, the session is no longer a sticky session and ELB uses the normal route to least loaded backend instance, unitl a new cookie is inserted.
+16) Security Policy component is used for ELB security suits which include SSL protocols (SSl/TLS versions), SSL Ciphers(Encryption Algorithms), and to decide is server order preference is to be maintained or not(server preference in chosing ciphers in client side)
+17) Cipher suite should contain RSA keys into it, else TLS will fail.
+18) ELB supports a single X.509 certificate for multiple certificates, create multiple ELB instances.
+19) Two factor authentication (client and server certificate, basically client side certificate) are not supported in HTTPS load balancer, instead use TCP proxy ELB for client to EC2 two factor authentication certificate. In this case ELB will not terminate/decrypt the connection and it will happen instead at EC2 instance.
+20) For stickey/session affinity you mandatorily need HTTPS in ELB.
+21) ELB connection draining is all about giving grace time to unhealthy EC2 so that sessions/connections established are not terminated immediately. Be default it is disabled and after enabling it the default time is 300sec (range: 1 - 3600) and no new connection will be send to this EC2 instance during draining period. It is marked as inservice-degraded.
+22) you can use DNS failover for ELBS spread accross different regions (Since ELB is region specific)
+23) ELB monitoring can be achived by CloudWatch, default 1 min (enabled) , ELB access logs (disabled by default, no charges for enableing it, however  S3 storage will be charged, not for data transfer). USe cloudtrail also for ELb for capturing API calls.
+24) ELB pre-warming is time required for ELb to detect inrease in load traffic and initiate scaling accordingly. It can usually take 1 to 7 mins according to traffic profile.
+25) ELB is not designed to queue requests and will return HTTP 503 error if the requests are above ELB capacity.
+26) If doing stress testing from one client , use DNSre-resolution to avoid caching to single ELB node.
+27) ELB connection timeout should be less than application time on EC2 instances.
+28) X-forwarded for headers allows the HTTP/S traffic to carry forward the original source header packets rather than the immediate one (ex: client headers will be carried instead of ELD when serving backend instances.)
+29) ELB monitoring can be achieved by CloudWatch (by default, metrics is send every one minute to cloudwatch from ELB), Access logs (disabled by default) and via CloudTrail (to capture all API calls for ELB)
+30) AWS will configure ELB with latest/pre-defined Security Policy. For front end you can customize but for backend clients you cannot. By default Server order preference will be enabed for default security policy and not enabled for custom security policy.
+31) ELB must have security policy for HTTPS and SSL traffic.
+32) Proxy protocol is only enabled in TCP/SSL and not in HTTP/HTTPS.
+33) In ELB, SSL is not supported in backend for proxy protocol 
+34) For frontend (between client and ELB) the HTTPS/SSL security policy can be in either pre defined or custom, but for backend it can be only pre defined with latest version only.
+35) If Server order preference is enabled (which is disabled by default) for custom policy, then the ciphers decided for SSL will be ELB preferred and not the client one.
+36) For default security / pre defined policy the server order preference is enabled by default.
+
+
+
